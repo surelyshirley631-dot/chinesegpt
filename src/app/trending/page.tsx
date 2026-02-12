@@ -48,7 +48,7 @@ const INITIAL_TRENDING_WORDS: TrendingItem[] = [
     desc: "Meaning to recommend a product to someone so strongly that they want to buy it (planting the grass/desire in their mind).",
     usage: "Use this when you see a product review and suddenly really want to buy it.",
     example: { zh: "被博主种草了这个口红。", en: "This lipstick was recommended by a blogger and now I really want it." },
-    imageUrl: "https://loremflickr.com/800/600/garden,grass?lock=203"
+    imageUrl: "https://5b0988e595225.cdn.sohucs.com/q_70,c_zoom,w_640/images/20200407/435df6fa299a4a29b90d24397d3891b7.jpeg"
   }
 ];
 
