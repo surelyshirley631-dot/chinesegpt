@@ -42,7 +42,7 @@ const INITIAL_TOPICS: CultureItem[] = [
     en: "Mid-Autumn Festival",
     desc: "Celebrated with mooncakes and moon gazing, symbolizing reunion.",
     detail: "Held on the 15th day of the 8th lunar month, when the moon is believed to be the fullest. It is a time for family reunions and sharing mooncakes.",
-    imageUrl: "https://loremflickr.com/800/600/moon,night?lock=102",
+    imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxmTcOs_3rGlNxMQmqar8kLr_ES08iXAP4OA&s",
     examples: [
       { zh: "中秋节我们要吃月饼。", pinyin: "Zhōng Qiū Jié wǒ men yào chī yuè bǐng.", en: "We eat mooncakes during the Mid-Autumn Festival." }
     ]
