@@ -55,7 +55,7 @@ const INITIAL_TOPICS: CultureItem[] = [
     en: "Dumplings",
     desc: "Traditional food popular in North China, symbolizing wealth.",
     detail: "Dumplings are shaped like ancient Chinese gold ingots. Eating them during festivals is believed to bring good luck and wealth for the coming year.",
-    imageUrl: "https://bpic.wotucdn.com//original/35/12/03/35120380-2ccc85a86da523afe569255318fefb91.png!waterxwebp320x556",
+    imageUrl: "/images/dumplings_final.jpg?v=timestamp-3",
     examples: [
       { zh: "我们一起包饺子吧。", pinyin: "Wǒ men yī qǐ bāo jiǎo zi ba.", en: "Let's make dumplings together." }
     ]

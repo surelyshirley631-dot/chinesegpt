@@ -38,7 +38,7 @@ const INITIAL_TRENDING_WORDS: TrendingItem[] = [
     desc: "Short for 'social phobia' (社交恐惧症), describing people who are afraid of or awkward in social situations.",
     usage: "Commonly used by introverts to describe themselves humorously when they want to avoid social gatherings.",
     example: { zh: "我是个社恐，不敢去派对。", en: "I'm socially awkward, I dare not go to the party." },
-    imageUrl: "https://loremflickr.com/800/600/cat,box?lock=202"
+    imageUrl: "https://images.unsplash.com/photo-1574158622682-e40e69881006?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
   },
   {
     id: '3',
