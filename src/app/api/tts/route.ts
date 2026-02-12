@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { EdgeTTSClient, OUTPUT_FORMAT } from 'edge-tts-client';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { text, voice, rate } = await req.json();
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     // Collect chunks
     const chunks: Uint8Array[] = [];
     
-    return new Promise((resolve) => {
+    return new Promise<NextResponse>((resolve) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stream.on('data', (chunk: any) => {
         if (chunk) chunks.push(chunk);

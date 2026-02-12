@@ -1,11 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
 import TextSelector from '@/components/TextSelector';
-
-// Configure worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export default function PDFLearningPage() {
   const [text, setText] = useState<string>('');
@@ -18,6 +14,9 @@ export default function PDFLearningPage() {
 
     setIsLoading(true);
     try {
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
       
