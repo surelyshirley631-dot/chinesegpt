@@ -29,6 +29,13 @@ export default function Home() {
       href: "/trending",
       icon: "🔥",
       color: "bg-purple-600"
+    },
+    {
+      title: "PINYIN",
+      description: "Build sentence cards with auto pinyin and translation.",
+      href: "/pinyin",
+      icon: "🈶",
+      color: "bg-indigo-600"
     }
   ];
 
@@ -42,7 +49,7 @@ export default function Home() {
           Experience the future of language learning. Choose your path below.
         </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 w-full px-4">
             {features.map((feature) => (
               <Link 
                 key={feature.title}
@@ -61,24 +68,6 @@ export default function Home() {
                 </div>
               </Link>
             ))}
-            
-            <Link 
-              href="/memory"
-              className="group relative flex flex-col items-center p-8 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-md hover:shadow-xl transition-all hover:-translate-y-1 border border-orange-100 md:col-span-2 lg:col-span-4"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="text-4xl p-4 rounded-full bg-orange-500 bg-opacity-10 group-hover:bg-opacity-20 transition-all">
-                  🧠
-                </div>
-                <div className="text-left">
-                  <h2 className="text-2xl font-bold text-slate-900">Memory Bank</h2>
-                  <p className="text-slate-600 text-sm">Review vocabulary with Spaced Repetition</p>
-                </div>
-              </div>
-              <div className="mt-2 bg-orange-500 text-white px-8 py-2 rounded-full text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                Start Review Session →
-              </div>
-            </Link>
           </div>
         </div>
       </main>
