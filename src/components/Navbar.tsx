@@ -32,6 +32,12 @@ export default function Navbar() {
               >
                 Memory Bank
               </Link>
+              <Link
+                href="/contact"
+                className="text-slate-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Contact
+              </Link>
               <DataBackup />
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
               <AuthButton />

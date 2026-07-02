@@ -1,0 +1,11 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#334155"/>
+      <stop offset="1" stop-color="#64748B"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <text x="80" y="330" fill="white" font-size="72" font-family="Inter, Arial, sans-serif" font-weight="700">Image Unavailable</text>
+  <text x="80" y="390" fill="#E2E8F0" font-size="36" font-family="Inter, Arial, sans-serif">Chinese Culture Topic</text>
+</svg>

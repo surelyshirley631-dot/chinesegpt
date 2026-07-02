@@ -1,8 +1,14 @@
+"use client";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { usePathname } from "next/navigation"; // Import usePathname
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import FloatingAddButton from "@/components/FloatingAddButton";
+import QuickInputBar from "@/components/QuickInputBar";
 import { MemoryProvider } from "@/context/MemoryContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,24 +20,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "ChineseGPT - Master Chinese with AI",
-  description: "Your personal AI tutor for learning Chinese language and culture.",
-};
+
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname(); // Get current pathname
+  const showPinyinComponents = pathname === '/pinyin'; // Condition for showing components
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50`}
       >
         <MemoryProvider>
-          <Navbar />
-          {children}
+          <ToastProvider>
+            <Navbar />
+            {children}
+            {showPinyinComponents && <FloatingAddButton />}
+            {showPinyinComponents && <QuickInputBar />}
+          </ToastProvider>
         </MemoryProvider>
       </body>
     </html>

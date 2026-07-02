@@ -28,7 +28,7 @@ const INITIAL_TOPICS: CultureItem[] = [
     en: "Spring Festival",
     desc: "The most important traditional festival, celebrating the beginning of a new year on the lunar calendar.",
     detail: "Also known as Chinese New Year, it marks the beginning of the lunar new year. Families gather for a reunion dinner, give red envelopes (hongbao), and set off fireworks to scare away the legendary beast 'Nian'.",
-    imageUrl: "https://f.bmcx.com/file/wannianrili/jieri/chunjie.png",
+    imageUrl: "/images/culture-spring-festival.svg",
     examples: [
       { zh: "春节快乐！", pinyin: "Chūn Jié kuài lè!", en: "Happy Spring Festival!" },
       { zh: "你会回家过春节吗？", pinyin: "Nǐ huì huí jiā guò Chūn Jié ma?", en: "Will you go home for the Spring Festival?" }
@@ -42,7 +42,7 @@ const INITIAL_TOPICS: CultureItem[] = [
     en: "Mid-Autumn Festival",
     desc: "Celebrated with mooncakes and moon gazing, symbolizing reunion.",
     detail: "Held on the 15th day of the 8th lunar month, when the moon is believed to be the fullest. It is a time for family reunions and sharing mooncakes.",
-    imageUrl: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxmTcOs_3rGlNxMQmqar8kLr_ES08iXAP4OA&s",
+    imageUrl: "/images/culture-mid-autumn.svg",
     examples: [
       { zh: "中秋节我们要吃月饼。", pinyin: "Zhōng Qiū Jié wǒ men yào chī yuè bǐng.", en: "We eat mooncakes during the Mid-Autumn Festival." }
     ]
@@ -68,7 +68,7 @@ const INITIAL_TOPICS: CultureItem[] = [
     en: "Hot Pot",
     desc: "A communal dining experience where ingredients are cooked in a shared pot.",
     detail: "Hot pot is more than just a dish; it's a social event. Friends and family sit around a simmering pot of soup stock, cooking meats, vegetables, and noodles.",
-    imageUrl: "https://p8.itc.cn/images01/20210119/628400a0528c4dc696efdac8749b176d.jpeg",
+    imageUrl: "/images/culture-hotpot.svg",
     examples: [
       { zh: "冬天吃火锅最舒服了。", pinyin: "Dōng tiān chī huǒ guō zuì shū fu le.", en: "It's most comfortable to eat hot pot in winter." }
     ]
@@ -101,7 +101,7 @@ export default function CulturePage() {
     const loadItems = async () => {
       if (user) {
         // Cloud Mode
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('culture_items')
           .select('*')
           .order('created_at', { ascending: true });
@@ -164,7 +164,7 @@ export default function CulturePage() {
       en: newItem.en,
       desc: newItem.desc || '',
       detail: newItem.detail || '',
-      imageUrl: newItem.imageUrl || `https://placehold.co/600x400?text=${encodeURIComponent(newItem.en)}`,
+      imageUrl: newItem.imageUrl || '/images/culture-fallback.svg',
       examples: newItem.examples || []
     };
 
@@ -279,13 +279,13 @@ export default function CulturePage() {
                     >
                       <div className="relative h-48 overflow-hidden bg-slate-200">
                         <img 
-                          src={item.imageUrl || `https://placehold.co/800x600?text=${encodeURIComponent(item.en)}`} 
+                          src={item.imageUrl || '/images/culture-fallback.svg'} 
                           alt={item.en}
                           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.onerror = null; // Prevent infinite loop
-                            target.src = `https://placehold.co/800x600/f1f5f9/475569?text=${encodeURIComponent(item.zh)}`;
+                            target.src = '/images/culture-fallback.svg';
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
@@ -318,7 +318,15 @@ export default function CulturePage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setActiveItem(null)}>
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="relative h-64">
-              <img src={activeItem.imageUrl} className="w-full h-full object-cover" />
+              <img
+                src={activeItem.imageUrl || '/images/culture-fallback.svg'}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/images/culture-fallback.svg';
+                }}
+              />
               <button 
                 onClick={() => setActiveItem(null)}
                 className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"

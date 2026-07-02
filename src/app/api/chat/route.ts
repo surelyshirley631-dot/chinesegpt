@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getApiConfig, Message } from '@/lib/api-config';
+import OpenAI from 'openai';
+import { getApiConfigs, Message } from '@/lib/api-config';
 
 export async function POST(req: Request) {
   try {
@@ -13,8 +14,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const { apiKey, modelName } = getApiConfig();
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const configs = getApiConfigs();
+    if (configs.length === 0) {
+      return NextResponse.json({ error: 'No AI API keys configured' }, { status: 500 });
+    }
 
     const systemInstruction = `You are a professional Chinese Learning Teaching Assistant (专业的中文学习助教).
 Your tone should be friendly, encouraging, and patient (语气亲切).
@@ -57,53 +60,78 @@ INTERACTION GUIDELINES (Foreigner Accent/Ambiguity Handling):
 3. ALWAYS strictly follow the formatting rules (ruby tags for Chinese).
 `;
 
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: systemInstruction,
-    });
+    let lastError = null;
 
-    // Process history
-    // 1. Filter out system messages (handled via systemInstruction)
-    // 2. Map to Gemini format
-    const history = messages
-      .slice(0, -1) // Exclude the last message which is the new prompt
-      .filter((msg: any) => msg.role !== 'system') // Gemini doesn't use 'system' role in history
-      .map((msg: Message) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-      }));
+    // Try providers in order (Gemini -> SiliconFlow -> DeepSeek)
+    for (const config of configs) {
+      try {
+        console.log(`Chat API: Trying provider ${config.provider}...`);
+        let responseText = '';
 
-    // Ensure the first message in history is from 'user'
-    if (history.length > 0 && history[0].role !== 'user') {
-      // If history starts with model, prepend a dummy greeting from user
-      // or we could merge, but prepending is safer to satisfy the API constraint.
-      history.unshift({
-        role: 'user',
-        parts: [{ text: 'Hello' }],
-      });
+        if (config.provider === 'gemini') {
+          const genAI = new GoogleGenerativeAI(config.apiKey);
+          const model = genAI.getGenerativeModel({
+            model: config.modelName,
+            systemInstruction: systemInstruction,
+          });
+
+          const history = messages
+            .slice(0, -1)
+            .filter((msg: any) => msg.role !== 'system')
+            .map((msg: Message) => ({
+              role: msg.role === 'user' ? 'user' : 'model',
+              parts: [{ text: msg.content }],
+            }));
+
+          if (history.length > 0 && history[0].role !== 'user') {
+            history.unshift({ role: 'user', parts: [{ text: 'Hello' }] });
+          }
+
+          const chat = model.startChat({ history });
+          const lastMessage = messages[messages.length - 1];
+          const result = await chat.sendMessage(lastMessage.content);
+          responseText = result.response.text();
+        } else {
+          // OpenAI compatible (DeepSeek, SiliconFlow)
+          const openai = new OpenAI({
+            apiKey: config.apiKey,
+            baseURL: config.baseUrl,
+          });
+
+          const completion = await openai.chat.completions.create({
+            model: config.modelName,
+            messages: [
+              { role: 'system', content: systemInstruction },
+              ...messages.map((m: any) => ({
+                role: m.role === 'model' ? 'assistant' : m.role,
+                content: m.content
+              }))
+            ],
+            temperature: 0.7,
+          });
+
+          responseText = completion.choices[0].message.content || '';
+        }
+
+        console.log(`Chat API: Success with ${config.provider}`);
+        return NextResponse.json({
+          message: {
+            role: 'model',
+            content: responseText,
+          },
+        });
+      } catch (error: any) {
+        console.error(`Chat API: Error with ${config.provider} provider:`, error.message || error);
+        lastError = error;
+        continue;
+      }
     }
 
-    const chat = model.startChat({
-      history: history,
-    });
+    return NextResponse.json(
+      { error: lastError?.message || 'All AI providers failed' },
+      { status: lastError?.status || 500 }
+    );
 
-    const lastMessage = messages[messages.length - 1];
-    const result = await chat.sendMessage(lastMessage.content);
-    const responseText = result.response.text();
-
-    return NextResponse.json({
-      message: {
-        role: 'model', // Returning 'model' to match internal logic, but frontend expects 'assistant' usually?
-        // Wait, frontend page.tsx expects 'assistant'.
-        // Let's stick to returning 'assistant' for frontend compatibility, 
-        // even though Gemini calls it 'model'.
-        // The frontend code: const assistantMessage = { role: 'assistant', content: data.message.content };
-        // So the API response structure matters.
-        content: responseText,
-      },
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error in chat API:', error);
     return NextResponse.json(

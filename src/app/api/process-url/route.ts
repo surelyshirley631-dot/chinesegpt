@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getApiConfig } from '@/lib/api-config';
+import OpenAI from 'openai';
+import { getApiConfigs } from '@/lib/api-config';
 
 export async function POST(req: Request) {
   try {
@@ -51,13 +52,14 @@ export async function POST(req: Request) {
       .replace(/<[^>]+>/g, ' ') // Strip tags
       .replace(/\s+/g, ' ') // Collapse spaces
       .trim()
-      .slice(0, 15000); // Limit context for Gemini
+      .slice(0, 15000); 
 
-    // 3. Process with Gemini
-    const { apiKey, modelName } = getApiConfig();
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: modelName });
-
+    // 3. Process with configured AI
+    const configs = getApiConfigs();
+    if (configs.length === 0) {
+      return NextResponse.json({ error: 'No AI providers configured' }, { status: 500 });
+    }
+    
     const prompt = `
     Analyze the following text content from a webpage about "${type || 'Chinese culture/language'}".
     URL: ${url}
@@ -87,26 +89,60 @@ export async function POST(req: Request) {
     }
     `;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    let aiText = '';
+    let lastError = null;
+
+    for (const config of configs) {
+      try {
+        if (config.provider === 'gemini') {
+          const genAI = new GoogleGenerativeAI(config.apiKey);
+          const model = genAI.getGenerativeModel({ model: config.modelName });
+          const result = await model.generateContent(prompt);
+          aiText = result.response.text();
+        } else {
+          const openai = new OpenAI({
+            apiKey: config.apiKey,
+            baseURL: config.baseUrl,
+          });
+
+          const completion = await openai.chat.completions.create({
+            model: config.modelName,
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.3,
+            response_format: { type: 'json_object' }
+          });
+          aiText = completion.choices[0].message.content || '';
+        }
+        
+        if (aiText) break;
+      } catch (e) {
+        console.error(`Process URL error with ${config.provider}:`, e);
+        lastError = e;
+      }
+    }
+
+    if (!aiText) {
+      throw new Error(lastError?.message || 'All AI providers failed to process URL');
+    }
+
     // Clean markdown code blocks if present
-    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonStr = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
     
     let data;
     try {
       data = JSON.parse(jsonStr);
     } catch (e) {
-      console.error('Failed to parse Gemini response:', text);
+      console.error('Failed to parse AI response:', aiText);
       throw new Error('Failed to generate valid JSON from AI');
     }
 
     return NextResponse.json({
       ...data,
-      imageUrl: imageUrl || ''
+      imageUrl: imageUrl || data.imageUrl
     });
 
   } catch (error: any) {
-    console.error('Error processing URL:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('URL processing error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

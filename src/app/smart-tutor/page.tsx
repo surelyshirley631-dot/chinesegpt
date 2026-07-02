@@ -54,11 +54,10 @@ export default function SmartTutorPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <Navbar />
       
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-neutral-800 mb-2">Smart Tutor (RAG)</h1>
+          <h1 className="text-3xl font-bold text-neutral-800 mb-2">Smart Tutor</h1>
           <p className="text-neutral-600">Ask questions based on your uploaded course materials.</p>
         </div>
 

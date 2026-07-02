@@ -1,0 +1,13 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <circle cx="940" cy="170" r="110" fill="#FEF3C7"/>
+  <circle cx="940" cy="170" r="70" fill="#FCD34D"/>
+  <text x="80" y="330" fill="white" font-size="72" font-family="Inter, Arial, sans-serif" font-weight="700">Mid-Autumn Festival</text>
+  <text x="80" y="390" fill="#BFDBFE" font-size="36" font-family="Inter, Arial, sans-serif">Mooncakes and Family Reunion</text>
+</svg>

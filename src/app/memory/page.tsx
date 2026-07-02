@@ -1,18 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMemory } from '../../context/MemoryContext';
+import WordBlockDisplay from '@/components/WordBlockDisplay';
+import TeachingCard from '@/components/TeachingCard';
 
 export default function MemoryBankPage() {
-  const { items, getDueItems, reviewItem } = useMemory();
+  const { items, getDueItems, reviewItem, lastAddedCardId, setLastAddedCardId, hasLoadedInitialData } = useMemory(); // 获取 hasLoadedInitialData
   const dueItems = getDueItems();
   const [showAnswer, setShowAnswer] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    if (lastAddedCardId) {
+      const element = document.getElementById(lastAddedCardId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setLastAddedCardId(null); // Clear the ID after scrolling
+      }
+    }
+  }, [lastAddedCardId, setLastAddedCardId]);
 
   const handleReview = (id: string, remembered: boolean) => {
     reviewItem(id, remembered);
     setShowAnswer(null);
   };
+
+  if (!hasLoadedInitialData) { // 如果数据尚未加载，显示加载状态
+    return (
+      <div className="p-8 max-w-4xl mx-auto min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center">
+        <p className="text-xl text-slate-500">正在加载记忆卡片...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-4xl mx-auto min-h-[calc(100vh-4rem)] flex flex-col">
@@ -115,30 +135,19 @@ export default function MemoryBankPage() {
               <p className="text-center text-slate-400 py-4">No items yet. Go add some!</p>
             ) : (
               items.map(item => (
-                <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition-colors shadow-sm flex justify-between items-center group">
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <h3 className="font-bold text-slate-800">{item.text}</h3>
-                      <span className="text-xs text-slate-400 font-mono bg-slate-50 px-1.5 py-0.5 rounded">
-                        {item.context || 'General'}
-                      </span>
-                    </div>
-                    {item.translation && (
-                      <p className="text-sm text-slate-600 mt-0.5">{item.translation}</p>
-                    )}
-                    <div className="text-xs text-slate-400 mt-2 flex gap-3">
-                      <span className={`flex items-center gap-1 ${item.stage > 0 ? 'text-green-600' : ''}`}>
-                        Target: Level {item.stage}
-                      </span>
-                      <span>
-                        Review: {new Date(item.nextReviewAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity select-none cursor-default">
-                    {item.stage >= 5 ? '🎓' : '🌱'}
-                  </div>
-                </div>
+                <TeachingCard
+                    key={item.id}
+                    title={item.context || 'General'}
+                    rule="Placeholder Rule"
+                    examples={item.examples || []}
+                    exercise={item.exercise || "Placeholder Exercise"}
+                    chineseText={item.text}
+                    englishTranslation={item.translation}
+                    pinyinText={item.pinyin}
+                    answer={item.answer || "Placeholder Answer"} // Pass answer to TeachingCard
+                    onEdit={(cardId: string) => console.log('Edit card:', cardId)}
+                    onAddBelow={(cardId: string) => console.log('Add below card:', cardId)}
+                  />
               ))
             )}
           </div>

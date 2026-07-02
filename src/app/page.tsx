@@ -4,7 +4,7 @@ export default function Home() {
   const features = [
     {
       title: "Start Chat",
-      description: "Practice daily conversations with your AI tutor.",
+      description: "Speak naturally with your AI tutor in real-life situations.",
       href: "/chat",
       icon: "💬",
       color: "bg-blue-600"
@@ -41,7 +41,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-8 md:p-24 bg-gradient-to-b from-blue-50 to-white">
-      <div className="z-10 max-w-6xl w-full items-center justify-center font-mono text-sm flex flex-col text-center">
+      <div className="z-10 max-w-6xl w-full items-center justify-center text-sm flex flex-col text-center">
         <h1 className="text-5xl md:text-7xl font-bold text-slate-900 mb-6 tracking-tight">
           Master Chinese with <span className="text-blue-600">AI</span>
         </h1>
@@ -59,12 +59,12 @@ export default function Home() {
                 <div className={`text-4xl mb-4 p-4 rounded-full ${feature.color} bg-opacity-10 group-hover:bg-opacity-20 transition-all`}>
                   {feature.icon}
                 </div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">{feature.title}</h2>
-                <p className="text-slate-600 text-sm leading-relaxed">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">{feature.title}</h2>
+                <p className="text-slate-600 text-sm leading-relaxed font-medium">
                   {feature.description}
                 </p>
                 <div className={`mt-6 ${feature.color} text-white px-6 py-2 rounded-full text-sm font-semibold opacity-0 group-hover:opacity-100 transition-opacity`}>
-                  Go →
+                  Explore →
                 </div>
               </Link>
             ))}

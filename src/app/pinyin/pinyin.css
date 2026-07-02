@@ -337,6 +337,8 @@ rt {
 
 .plain-char {
   padding: 0 1px;
+  white-space: pre-wrap;
+  word-break: normal;
 }
 
 .translation {
@@ -345,6 +347,11 @@ rt {
   border-top: 1px solid #eef2f6;
   font-size: 1.06rem;
   color: #344054;
+}
+
+.translation.is-translating {
+  color: #667085;
+  font-style: italic;
 }
 
 .preview-empty {
@@ -407,6 +414,35 @@ rt {
   min-height: 34px;
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+.tone-palette {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tone-chip {
+  border: 1px solid #d0d9e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.tone-chip:hover {
+  background: #eef4ff;
+  border-color: #b9cdfa;
+}
+
+.tone-chip.active {
+  background: #e3efff;
+  border-color: #7aa2ff;
+  color: #1d4ed8;
 }
 
 .draft-label {

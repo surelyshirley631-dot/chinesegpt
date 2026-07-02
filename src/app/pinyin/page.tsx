@@ -1,56 +1,133 @@
 "use client";
 import "./pinyin.css";
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { pinyin } from 'pinyin-pro'
 
 const STORAGE_KEY = 'pinyin-ruby-editor-entries'
 const CJK_CHAR_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/
-const PHRASE_TRANSLATIONS = {
+type Entry = {
+  id: string
+  chinese: string
+  autoEnglish: string
+  finalEnglish: string
+  isEnglishCustom: boolean
+  customPinyin: Record<string | number, string>
+  keyVocabulary: string
+  languagePoints: string
+  sentencePattern: string
+  grammarNotes: string
+  teachingNotes: string
+}
+
+type RubyToken = {
+  index: number
+  char: string
+  auto: string
+  custom: string
+  shown: string
+  isHan: boolean
+}
+const PHRASE_TRANSLATIONS: Record<string, string> = {
   你好吗: 'How are you?',
   你好: 'Hello.',
   谢谢: 'Thank you.',
   对不起: 'Sorry.',
   没关系: "It's okay.",
   我爱你: 'I love you.',
-  我喜欢学习中文: 'I like learning Chinese.',
-  我是老师: 'I am a teacher.',
-  我是学生: 'I am a student.',
+  喜欢: 'like',
+  吃辣: 'eat spicy food',
+  什么: 'what',
+  计划: 'plan',
+  有什么: 'have what',
+  今天: 'today',
+  明天: 'tomorrow',
+  昨天: 'yesterday',
+  老师: 'teacher',
+  学生: 'student',
+  学习: 'learn',
+  中文: 'Chinese',
+  汉字: 'Chinese characters',
+  北京: 'Beijing',
+  上海: 'Shanghai',
+  咖啡: 'coffee',
+  浓缩咖啡: 'espresso',
+  美式咖啡: 'americano',
+  拿铁: 'latte',
+  卡布奇诺: 'cappuccino',
+  这个: 'this',
+  那个: 'that',
+  中国: 'China',
+  美国: 'USA',
+  英国: 'UK',
+  法国: 'France',
+  德国: 'Germany',
+  日本: 'Japan',
+  韩国: 'Korea',
+  吃饭: 'eat',
+  喝: 'drink',
+  水: 'water',
+  喝咖啡: 'drink coffee',
+  去上学: 'go to school',
+  去上班: 'go to work',
+  喜欢喝咖啡: 'like drinking coffee',
+  这个是浓缩咖啡吗: 'Is this espresso?',
 }
-const CHAR_TRANSLATIONS = {
+const CHAR_TRANSLATIONS: Record<string, string> = {
   你: 'you',
   我: 'I',
   他: 'he',
   她: 'she',
+  它: 'it',
   们: '(plural)',
   好: 'good',
   吗: '(question)',
   很: 'very',
   是: 'am/is/are',
-  学: 'learn',
-  生: 'student',
-  老: 'old',
-  师: 'teacher',
-  爱: 'love',
-  喜: 'like',
-  欢: 'like',
-  谢: 'thank',
-  对: 'toward',
+  有: 'have/has',
   不: 'not',
-  起: 'rise',
   没: 'not',
-  关: 'concern',
-  系: 'relation',
-  中: 'middle',
-  文: 'language',
-  今: 'today',
+  要: 'want',
+  会: 'can/will',
+  想: 'think/want',
+  去: 'go',
+  来: 'come',
+  看: 'look/see',
+  听: 'listen/hear',
+  说: 'speak/say',
+  读: 'read',
+  写: 'write',
+  学: 'learn',
+  大: 'big',
+  小: 'small',
+  多: 'many/much',
+  少: 'few/little',
+  上: 'up/on',
+  下: 'down/under',
+  左: 'left',
+  右: 'right',
+  前: 'front',
+  后: 'back',
+  这: 'this',
+  那: 'that',
+  哪: 'which/where',
+  谁: 'who',
+  几: 'how many',
+  个: '(measure word)',
+  岁: 'years old',
+  点: "o'clock",
+  分: 'minute',
+  秒: 'second',
+  年: 'year',
+  月: 'month',
+  日: 'day',
+  号: 'date',
   天: 'day',
-  气: 'weather',
 }
 const PUNCTUATION_REGEX = /[，。！？；：、“”‘’（）《》〈〉,.!?;:'"()\-—]/
 
-const createEntry = () => ({
+const createEntry = (): Entry => ({
   id: crypto.randomUUID(),
   chinese: '',
   autoEnglish: '',
@@ -64,8 +141,8 @@ const createEntry = () => ({
   teachingNotes: '',
 })
 
-const readStoredEntries = () => {
-  const initial = [createEntry()]
+const readStoredEntries = (): Entry[] => {
+  const initial: Entry[] = [createEntry()]
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
@@ -75,7 +152,7 @@ const readStoredEntries = () => {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return initial
     }
-    return parsed.map((entry) => ({
+    return parsed.map((entry: any) => ({
       id: entry.id || crypto.randomUUID(),
       chinese: typeof entry.chinese === 'string' ? entry.chinese : '',
       autoEnglish: typeof entry.autoEnglish === 'string' ? entry.autoEnglish : '',
@@ -109,7 +186,7 @@ const readStoredEntries = () => {
   }
 }
 
-const getAutoPinyin = (char) => {
+const getAutoPinyin = (char: string) => {
   if (!CJK_CHAR_REGEX.test(char)) {
     return ''
   }
@@ -117,15 +194,64 @@ const getAutoPinyin = (char) => {
   return typeof result === 'string' ? result.trim() : ''
 }
 
-const splitWithPinyin = (entry) =>
-  Array.from(entry.chinese).map((char, index) => {
-    const auto = getAutoPinyin(char)
-    const custom = typeof entry.customPinyin?.[index] === 'string' ? entry.customPinyin[index] : ''
-    const shown = custom.trim() || auto
-    return { index, char, auto, custom, shown, isHan: Boolean(auto) }
-  })
+const buildAutoPinyinList = (chinese: string) => {
+  const hanChars = Array.from(chinese).filter((char) => CJK_CHAR_REGEX.test(char))
+  if (!hanChars.length) {
+    return []
+  }
+  const raw = pinyin(hanChars.join(''), { toneType: 'symbol', type: 'array' })
+  if (Array.isArray(raw) && raw.length === hanChars.length) {
+    return raw.map((item) => `${item ?? ''}`.trim())
+  }
+  return hanChars.map((char) => getAutoPinyin(char))
+}
 
-const generateAutoEnglish = (chinese) => {
+const splitWithPinyin = (entry: { chinese: string; customPinyin?: Record<string | number, string> }) => {
+  const chars = Array.from(entry.chinese || '')
+  const autoPinyinList = buildAutoPinyinList(entry.chinese || '')
+  const tokens: RubyToken[] = []
+  let hanCursor = 0
+  let index = 0
+
+  while (index < chars.length) {
+    const char = chars[index]
+    if (CJK_CHAR_REGEX.test(char)) {
+      const auto = autoPinyinList[hanCursor] || getAutoPinyin(char)
+      const custom = typeof entry.customPinyin?.[index] === 'string' ? entry.customPinyin[index] : ''
+      const shown = custom.trim() || auto
+      tokens.push({
+        index,
+        char,
+        auto,
+        custom,
+        shown,
+        isHan: true,
+      })
+      hanCursor += 1
+      index += 1
+      continue
+    }
+
+    const start = index
+    let plain = ''
+    while (index < chars.length && !CJK_CHAR_REGEX.test(chars[index])) {
+      plain += chars[index]
+      index += 1
+    }
+    tokens.push({
+      index: start,
+      char: plain,
+      auto: '',
+      custom: '',
+      shown: '',
+      isHan: false,
+    })
+  }
+
+  return tokens
+}
+
+const generateFallbackEnglish = (chinese: string) => {
   const normalized = chinese.replace(/\s+/g, '').trim()
   if (!normalized) {
     return ''
@@ -133,7 +259,7 @@ const generateAutoEnglish = (chinese) => {
   if (PHRASE_TRANSLATIONS[normalized]) {
     return PHRASE_TRANSLATIONS[normalized]
   }
-  const segments = []
+  const segments: string[] = []
   let cursor = 0
   const phraseKeys = Object.keys(PHRASE_TRANSLATIONS).sort((a, b) => b.length - a.length)
   while (cursor < normalized.length) {
@@ -162,11 +288,122 @@ const generateAutoEnglish = (chinese) => {
   if (segments.length === 0) {
     return 'Translation draft unavailable. Please edit manually.'
   }
-  const sentence = segments.join(' ').replace(/\s+/g, ' ').trim()
-  return sentence ? `${sentence}.` : 'Translation draft unavailable. Please edit manually.'
+  
+  // Filter out redundant consecutive translations (e.g., 'like like')
+  const uniqueSegments: string[] = []
+  segments.forEach((seg, i) => {
+    if (i === 0 || seg !== segments[i - 1]) {
+      uniqueSegments.push(seg)
+    }
+  })
+
+  const sentence = uniqueSegments.join(' ').replace(/\s+/g, ' ').trim()
+  if (!sentence) return 'Translation draft unavailable. Please edit manually.'
+  
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1) + (/[.!?]$/.test(sentence) ? '' : '.')
 }
 
-const shrink = (text, max = 20) => {
+const TONE_MAP: Record<string, string[]> = {
+  a: ['a', 'ā', 'á', 'ǎ', 'à'],
+  e: ['e', 'ē', 'é', 'ě', 'è'],
+  i: ['i', 'ī', 'í', 'ǐ', 'ì'],
+  o: ['o', 'ō', 'ó', 'ǒ', 'ò'],
+  u: ['u', 'ū', 'ú', 'ǔ', 'ù'],
+  ü: ['ü', 'ǖ', 'ǘ', 'ǚ', 'ǜ'],
+}
+
+const ACCENT_TO_BASE: Record<string, string> = {
+  ā: 'a1',
+  á: 'a2',
+  ǎ: 'a3',
+  à: 'a4',
+  ē: 'e1',
+  é: 'e2',
+  ě: 'e3',
+  è: 'e4',
+  ī: 'i1',
+  í: 'i2',
+  ǐ: 'i3',
+  ì: 'i4',
+  ō: 'o1',
+  ó: 'o2',
+  ǒ: 'o3',
+  ò: 'o4',
+  ū: 'u1',
+  ú: 'u2',
+  ǔ: 'u3',
+  ù: 'u4',
+  ǖ: 'ü1',
+  ǘ: 'ü2',
+  ǚ: 'ü3',
+  ǜ: 'ü4',
+}
+
+const normalizePinyinBase = (value: string) =>
+  value
+    .replace(/u:/gi, 'ü')
+    .replace(/v/gi, (match: string) => (match === 'V' ? 'Ü' : 'ü'))
+
+const numberedSyllableToTone = (syllable: string) => {
+  const normalized = normalizePinyinBase(syllable)
+  const match = normalized.match(/^([A-Za-züÜ]+)([1-5])$/)
+  if (!match) {
+    return normalized
+  }
+  const base = match[1]
+  const tone = Number(match[2])
+  if (tone === 5) {
+    return base
+  }
+
+  const lower = base.toLowerCase()
+  let target = lower.indexOf('a')
+  if (target < 0) target = lower.indexOf('e')
+  if (target < 0 && lower.includes('ou')) target = lower.indexOf('o')
+  if (target < 0) {
+    for (let i = lower.length - 1; i >= 0; i -= 1) {
+      if ('aeiouü'.includes(lower[i])) {
+        target = i
+        break
+      }
+    }
+  }
+  if (target < 0) {
+    return base
+  }
+
+  const vowel = lower[target]
+  const toned = TONE_MAP[vowel]?.[tone] || vowel
+  const finalChar = base[target] === base[target].toUpperCase() ? toned.toUpperCase() : toned
+  return `${base.slice(0, target)}${finalChar}${base.slice(target + 1)}`
+}
+
+const toNumberedSyllable = (syllable: string) => {
+  let tone = 5
+  const converted = Array.from(normalizePinyinBase(syllable)).map((char) => {
+    const mapped = ACCENT_TO_BASE[char.toLowerCase()]
+    if (!mapped) {
+      return char
+    }
+    tone = Number(mapped[1])
+    return mapped[0]
+  })
+  return `${converted.join('')}${tone}`
+}
+
+const normalizePinyinInput = (value: string) =>
+  value.replace(/[A-Za-züÜvV:]+[1-5]/g, (syllable: string) => numberedSyllableToTone(syllable))
+
+const getToneOptions = (source: string) => {
+  const numbered = toNumberedSyllable(source || '')
+  const base = numbered.replace(/[1-5]$/, '')
+  if (!base) {
+    return []
+  }
+  return [1, 2, 3, 4, 5].map((tone) => numberedSyllableToTone(`${base}${tone}`))
+}
+
+const shrink = (text: string, max = 20) => {
   if (!text) {
     return 'Untitled'
   }
@@ -174,10 +411,11 @@ const shrink = (text, max = 20) => {
 }
 
 export default function PinyinPage() {
-  const [entries, setEntries] = useState(readStoredEntries)
-  const [selectedId, setSelectedId] = useState(null)
-  const [viewMode, setViewMode] = useState('sentence')
-  const [activePinyinIndex, setActivePinyinIndex] = useState(null)
+  const [entries, setEntries] = useState<Entry[]>([createEntry()])
+  const [hasMounted, setHasMounted] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'sentence' | 'presentation'>('sentence')
+  const [activePinyinIndex, setActivePinyinIndex] = useState<number | null>(null)
   const [newVocabularyDraft, setNewVocabularyDraft] = useState('')
   const [showKeyVocabulary, setShowKeyVocabulary] = useState(true)
   const [showTeachingNotes, setShowTeachingNotes] = useState(false)
@@ -187,17 +425,31 @@ export default function PinyinPage() {
   const [quickAutoEnglish, setQuickAutoEnglish] = useState('')
   const [quickFinalEnglish, setQuickFinalEnglish] = useState('')
   const [quickIsEnglishCustom, setQuickIsEnglishCustom] = useState(false)
-  const [quickDisplayOverride, setQuickDisplayOverride] = useState(null)
+  const [quickDisplayOverride, setQuickDisplayOverride] = useState<{
+    chinese: string
+    autoEnglish: string
+    finalEnglish: string
+    customPinyin: Record<string | number, string>
+  } | null>(null)
   const [fontScale, setFontScale] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [copyState, setCopyState] = useState('idle')
-  const exportRef = useRef(null)
-  const fullscreenRef = useRef(null)
+  const [isTranslating, setIsTranslating] = useState(false)
+  const exportRef = useRef<HTMLDivElement | null>(null)
+  const fullscreenRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
+    setEntries(readStoredEntries())
+    setHasMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hasMounted) {
+      return
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-  }, [entries])
+  }, [entries, hasMounted])
 
   useEffect(() => {
     if (!selectedId && entries.length) {
@@ -262,24 +514,24 @@ export default function PinyinPage() {
     if (!selectedPreview || activePinyinIndex == null) {
       return
     }
-    const token = selectedPreview.rubyItems[activePinyinIndex]
+    const token = selectedPreview.rubyItems.find((item) => item.isHan && item.index === activePinyinIndex)
     if (!token || !token.isHan) {
       setActivePinyinIndex(null)
     }
   }, [activePinyinIndex, selectedPreview])
 
-  const updateEntry = (id, patch) => {
+  const updateEntry = (id: string, patch: Partial<Entry>) => {
     setEntries((prev) => prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)))
   }
 
-  const updateSelectedEntry = (patch) => {
+  const updateSelectedEntry = (patch: Partial<Entry>) => {
     if (!selectedEntry) {
       return
     }
     updateEntry(selectedEntry.id, patch)
   }
 
-  const updateCustomPinyin = (id, index, value) => {
+  const updateCustomPinyin = (id: string, index: number, value: string) => {
     setEntries((prev) =>
       prev.map((entry) => {
         if (entry.id !== id) {
@@ -296,15 +548,17 @@ export default function PinyinPage() {
     )
   }
 
-  const handleChineseChange = (value) => {
+  const handleChineseChange = (value: string) => {
     if (!selectedEntry) {
       return
     }
-    const autoEnglish = generateAutoEnglish(value)
-    const patch = { chinese: value, autoEnglish }
-    if (!selectedEntry.isEnglishCustom || !selectedEntry.finalEnglish.trim()) {
-      patch.finalEnglish = autoEnglish
-      patch.isEnglishCustom = false
+    const patch: Partial<Entry> = { chinese: value }
+    if (!value.trim()) {
+      patch.autoEnglish = ''
+      if (!selectedEntry.isEnglishCustom || !selectedEntry.finalEnglish.trim()) {
+        patch.finalEnglish = ''
+        patch.isEnglishCustom = false
+      }
     }
     updateSelectedEntry(patch)
   }
@@ -317,7 +571,7 @@ export default function PinyinPage() {
     setNewVocabularyDraft('')
   }
 
-  const deleteEntry = (id) => {
+  const deleteEntry = (id: string) => {
     setEntries((prev) => {
       if (prev.length === 1) {
         const fallback = createEntry()
@@ -333,7 +587,7 @@ export default function PinyinPage() {
     })
   }
 
-  const handleSelectEntry = (id) => {
+  const handleSelectEntry = (id: string) => {
     setSelectedId(id)
     setActivePinyinIndex(null)
     setCopyState('idle')
@@ -341,7 +595,7 @@ export default function PinyinPage() {
     setQuickDisplayOverride(null)
   }
 
-  const handleSelectToken = (token) => {
+  const handleSelectToken = (token: RubyToken) => {
     if (!token.isHan) {
       return
     }
@@ -349,7 +603,93 @@ export default function PinyinPage() {
   }
 
   const activeToken =
-    activePinyinIndex == null || !selectedPreview ? null : selectedPreview.rubyItems[activePinyinIndex]
+    activePinyinIndex == null || !selectedPreview
+      ? null
+      : selectedPreview.rubyItems.find((token) => token.isHan && token.index === activePinyinIndex) || null
+  const toneOptions = useMemo(
+    () => (activeToken?.isHan ? getToneOptions(activeToken.custom || activeToken.auto) : []),
+    [activeToken],
+  )
+
+  const requestSmartTranslation = async (text: string): Promise<string> => {
+    const normalized = text.trim()
+    if (!normalized) {
+      return ''
+    }
+    try {
+      const response = await fetch('/api/pinyin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: normalized }),
+      })
+      if (!response.ok) {
+        throw new Error(`Translate failed with status ${response.status}`)
+      }
+      const data = await response.json()
+      if (data.error) {
+        console.error('Smart translation API returned error:', data.error)
+        return '' // Return empty to allow UI to show error or fallback
+      }
+      const translated = typeof data?.translation === 'string' ? data.translation.trim() : ''
+      return translated
+    } catch (e) {
+      console.error('Smart translation network error:', e)
+      return ''
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedEntry) {
+      return
+    }
+    let disposed = false
+    const entryId = selectedEntry.id
+    const sourceChinese = selectedEntry.chinese
+    if (!sourceChinese.trim()) {
+      setIsTranslating(false)
+      setEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id !== entryId) {
+            return entry
+          }
+          const patch: Partial<Entry> = { autoEnglish: '' }
+          if (!entry.isEnglishCustom || !entry.finalEnglish.trim()) {
+            patch.finalEnglish = ''
+            patch.isEnglishCustom = false
+          }
+          return { ...entry, ...patch }
+        }),
+      )
+      return
+    }
+    setIsTranslating(true)
+    const timer = window.setTimeout(async () => {
+      const autoEnglish = await requestSmartTranslation(sourceChinese)
+      if (disposed) {
+        return
+      }
+      setEntries((prev) =>
+        prev.map((entry) => {
+          if (entry.id !== entryId || entry.chinese !== sourceChinese) {
+            return entry
+          }
+          const patch: Partial<Entry> = { autoEnglish }
+          if (!entry.isEnglishCustom || !entry.finalEnglish.trim()) {
+            patch.finalEnglish = autoEnglish
+            patch.isEnglishCustom = false
+          }
+          return { ...entry, ...patch }
+        }),
+      )
+      setIsTranslating(false)
+    }, 500)
+
+    return () => {
+      disposed = true
+      window.clearTimeout(timer)
+      setIsTranslating(false)
+    }
+  }, [selectedEntry?.id, selectedEntry?.chinese])
 
   const currentIndex = useMemo(
     () => entries.findIndex((entry) => entry.id === selectedEntry?.id),
@@ -403,17 +743,17 @@ export default function PinyinPage() {
       .filter(Boolean)
   }, [selectedPreview])
 
-  const updateVocabularyItems = (items) => {
+  const updateVocabularyItems = (items: string[]) => {
     updateSelectedEntry({ keyVocabulary: items.join('\n') })
   }
 
-  const updateVocabularyItem = (index, value) => {
+  const updateVocabularyItem = (index: number, value: string) => {
     const next = [...vocabularyItems]
     next[index] = value
     updateVocabularyItems(next.map((item) => item.trim()).filter(Boolean))
   }
 
-  const removeVocabularyItem = (index) => {
+  const removeVocabularyItem = (index: number) => {
     updateVocabularyItems(vocabularyItems.filter((_, i) => i !== index))
   }
 
@@ -436,12 +776,12 @@ export default function PinyinPage() {
     })
   }
 
-  const regenerateDraft = (replaceFinal = false) => {
+  const regenerateDraft = async (replaceFinal = false) => {
     if (!selectedEntry) {
       return
     }
-    const autoEnglish = generateAutoEnglish(selectedEntry.chinese)
-    const patch = { autoEnglish }
+    const autoEnglish = await requestSmartTranslation(selectedEntry.chinese)
+    const patch: Partial<Entry> = { autoEnglish }
     if (replaceFinal) {
       patch.finalEnglish = autoEnglish
       patch.isEnglishCustom = false
@@ -479,7 +819,7 @@ export default function PinyinPage() {
   const openQuickCorrect = () => {
     const source = quickDisplayOverride || selectedEntry
     const chinese = source?.chinese || ''
-    const autoEnglish = generateAutoEnglish(chinese)
+    const autoEnglish = generateFallbackEnglish(chinese)
     setQuickStudentSaid('')
     setQuickCorrectedChinese(chinese)
     setQuickAutoEnglish(autoEnglish)
@@ -492,11 +832,23 @@ export default function PinyinPage() {
     if (!isQuickCorrectOpen) {
       return
     }
-    const autoEnglish = generateAutoEnglish(quickCorrectedChinese)
-    setQuickAutoEnglish(autoEnglish)
-    if (!quickIsEnglishCustom) {
-      setQuickFinalEnglish(autoEnglish)
+    const source = quickCorrectedChinese.trim()
+    if (!source) {
+      setQuickAutoEnglish('')
+      if (!quickIsEnglishCustom) {
+        setQuickFinalEnglish('')
+      }
+      return
     }
+    const timer = window.setTimeout(async () => {
+      const autoEnglish = await requestSmartTranslation(source)
+      setQuickAutoEnglish(autoEnglish)
+      if (!quickIsEnglishCustom) {
+        setQuickFinalEnglish(autoEnglish)
+      }
+    }, 500)
+
+    return () => window.clearTimeout(timer)
   }, [isQuickCorrectOpen, quickCorrectedChinese, quickIsEnglishCustom])
 
   const handleQuickShowOnScreen = () => {
@@ -559,10 +911,33 @@ export default function PinyinPage() {
       if (!text) {
         return
       }
-      await navigator.clipboard.writeText(text)
+      
+      // Modern clipboard API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Fallback for non-secure contexts or older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        try {
+          document.execCommand('copy')
+        } catch (err) {
+          console.error('Fallback copy failed', err)
+          throw new Error('Copy failed')
+        }
+        document.body.removeChild(textArea)
+      }
+      
       setCopyState('copied')
       window.setTimeout(() => setCopyState('idle'), 1500)
-    } catch {
+    } catch (err) {
+      console.error('Copy error:', err)
       setCopyState('failed')
       window.setTimeout(() => setCopyState('idle'), 1800)
     }
@@ -695,7 +1070,7 @@ export default function PinyinPage() {
               />
             </div>
 
-            <article className="preview-card surface" ref={exportRef} style={{ '--ruby-scale': fontScale }}>
+            <article className="preview-card surface" ref={exportRef} style={{ ['--ruby-scale' as any]: fontScale } as CSSProperties}>
               {renderPreview?.chinese ? (
                 <>
                   <div className="ruby-line">
@@ -719,8 +1094,8 @@ export default function PinyinPage() {
                       ),
                     )}
                   </div>
-                  <p className="translation">
-                    {renderPreview.finalEnglish || renderPreview.autoEnglish || 'Translation appears here.'}
+                  <p className={`translation ${isTranslating ? 'is-translating' : ''}`}>
+                    {isTranslating ? 'Translating...' : (renderPreview.finalEnglish || renderPreview.autoEnglish || 'No translation available. Please check AI config.')}
                   </p>
                 </>
               ) : (
@@ -741,25 +1116,44 @@ export default function PinyinPage() {
             <section className="inspector-block">
               <h3>Pinyin Editor</h3>
               {activeToken?.isHan ? (
-                <div className="token-editor">
-                  <span className="char-pill">{activeToken.char}</span>
-                  <input
-                    type="text"
-                    className="input pinyin-input"
-                    value={activeToken.custom}
-                    placeholder={activeToken.auto}
-                    onChange={(event) =>
-                      updateCustomPinyin(selectedEntry.id, activeToken.index, event.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-subtle"
-                    onClick={() => updateCustomPinyin(selectedEntry.id, activeToken.index, '')}
-                  >
-                    Reset
-                  </button>
-                </div>
+                <>
+                  <div className="token-editor">
+                    <span className="char-pill">{activeToken.char}</span>
+                    <input
+                      type="text"
+                      className="input pinyin-input"
+                      value={activeToken.custom}
+                      placeholder={activeToken.auto}
+                      onChange={(event) =>
+                        updateCustomPinyin(
+                          selectedEntry.id,
+                          activeToken.index,
+                          normalizePinyinInput(event.target.value),
+                        )
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-subtle"
+                      onClick={() => updateCustomPinyin(selectedEntry.id, activeToken.index, '')}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="tone-palette">
+                    {toneOptions.map((tone) => (
+                      <button
+                        type="button"
+                        key={tone}
+                        className={`tone-chip ${activeToken.shown === tone ? 'active' : ''}`}
+                        onClick={() => updateCustomPinyin(selectedEntry.id, activeToken.index, tone)}
+                      >
+                        {tone}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="empty-note">Tip: type numbered pinyin like `ni3`, it auto-converts to `nǐ`.</p>
+                </>
               ) : (
                 <p className="empty-note">Click a Chinese character in the preview to edit its pinyin.</p>
               )}
@@ -780,7 +1174,9 @@ export default function PinyinPage() {
                 }
               />
               <p className="draft-label">Auto Draft</p>
-              <p className="draft-content">{selectedEntry?.autoEnglish || 'No draft available yet.'}</p>
+              <p className="draft-content">
+                {isTranslating ? 'Translating...' : selectedEntry?.autoEnglish || 'No draft available yet.'}
+              </p>
               <div className="draft-actions">
                 <button
                   type="button"
@@ -864,7 +1260,7 @@ export default function PinyinPage() {
             </div>
           </div>
 
-          <article className="preview-card surface" ref={exportRef} style={{ '--ruby-scale': fontScale }}>
+          <article className="preview-card surface" ref={exportRef} style={{ ['--ruby-scale' as any]: fontScale } as CSSProperties}>
             {renderPreview?.chinese ? (
               <>
                 <div className="ruby-line">
@@ -1101,8 +1497,8 @@ export default function PinyinPage() {
               <button
                 type="button"
                 className="btn btn-subtle"
-                onClick={() => {
-                  const auto = generateAutoEnglish(quickCorrectedChinese)
+                onClick={async () => {
+                  const auto = await requestSmartTranslation(quickCorrectedChinese)
                   setQuickAutoEnglish(auto)
                   if (!quickIsEnglishCustom) {
                     setQuickFinalEnglish(auto)
@@ -1132,5 +1528,3 @@ export default function PinyinPage() {
     </div>
   )
 }
-
-

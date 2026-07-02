@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Mic, Send, Volume2, Settings, X, Cloud, Monitor } from 'lucide-react';
+import { Mic, Send, Volume2, Settings, X, Monitor } from 'lucide-react';
 import { CLOUD_VOICES, playCloudTTS } from './EdgeTTSHandler';
 
 type Message = {
@@ -19,7 +19,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [speechRate, setSpeechRate] = useState(1.0);
+  const [speechRate, setSpeechRate] = useState(0.9);
   const [showSettings, setShowSettings] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   // selectedVoiceURI can be a system voice URI OR a Cloud Voice shortName
@@ -149,46 +149,15 @@ export default function ChatPage() {
     // Cancel any current speaking
     window.speechSynthesis.cancel();
 
-    // 1. Remove <rt> tags and their content (pinyin) FIRST to avoid reading pinyin
-    const noRt = content.replace(/<rt>.*?<\/rt>/g, '');
-    
-    // 2. Remove all other HTML tags to get raw text
-    let text = noRt.replace(/<[^>]+>/g, '');
-
-    // 3. Remove Markdown characters (asterisks *, underscores _, hash #, brackets [], etc.)
-    // User specifically complained about asterisks being read out.
-    text = text.replace(/[\*\_#\`\[\]]/g, '');
-
-    // 4. Remove Pinyin words (words containing Latin Extended tone marks)
-    // User complained that "jiānbǐng" was being read as "J-I-A-N-B-I-N-G" (letters) instead of the word.
-    // Since we have the Chinese characters (e.g. 煎饼) which provide the correct pronunciation,
-    // we strip the Pinyin text to avoid this spelling-out behavior.
-    text = text.replace(/[a-zA-Z]*[\u00C0-\u024F\u1E00-\u1EFF][a-zA-Z\u00C0-\u024F\u1E00-\u1EFF]*/g, '');
-
-    // 5. "Only read Chinese" requirement (Reverted to this strict mode)
-    // Strategy: Filter for lines containing Chinese, then aggressively strip non-Chinese/non-Number characters from those lines.
-    const lines = text.split('\n');
-    const processedLines = lines.map(line => {
-      // If the line has NO Chinese characters, ignore it completely (it's likely English explanation)
-      if (!/[\u4e00-\u9fa5]/.test(line)) return '';
-
-      // If it has Chinese, keep it but strip English/Latin letters to avoid "strange spellings"
-      // We keep Chinese chars, numbers, and common punctuation.
-      // Remove Basic Latin letters
-      return line.replace(/[a-zA-Z]/g, '');
-    });
-
-    // Join and clean up
-    let textToPlay = processedLines.join(' ');
-    
-    // 6. Remove ALL punctuation marks (both Chinese and English)
-    // User specifically requested not to read any punctuation like "dot", "parenthesis", etc.
-    // We replace them with spaces to maintain natural pauses in speech.
-    textToPlay = textToPlay.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~。，、；：？！…—·ˉ¨‘’“”〝〞﹙﹚﹛﹜﹝﹞★]/g, ' ');
-
-    // 7. Clean up artifacts like empty parentheses "()" or double spaces
-    textToPlay = textToPlay
-      .replace(/\s+/g, ' ')     // Collapse spaces
+    const textToPlay = content
+      // Remove ruby pinyin first so it is not spelled letter by letter.
+      .replace(/<rt[\s\S]*?<\/rt>/gi, '')
+      // Strip all remaining HTML tags.
+      .replace(/<[^>]+>/g, ' ')
+      // Remove markdown markers while keeping actual words.
+      .replace(/[`*_#>\[\]]/g, '')
+      // Normalize pauses and spaces.
+      .replace(/\s+/g, ' ')
       .trim();
 
     // If nothing remains, do not speak.
@@ -197,7 +166,7 @@ export default function ChatPage() {
     // Check if it's a Cloud Voice
     const cloudVoice = CLOUD_VOICES.find(v => v.shortName === selectedVoiceURI);
     if (cloudVoice) {
-      playCloudTTS(textToPlay, cloudVoice.shortName, 0.6).catch(err => { // Enforce 0.6x for Cloud TTS too
+      playCloudTTS(textToPlay, cloudVoice.shortName, speechRate).catch(err => {
         console.error("Cloud TTS failed during playback:", err);
       });
       return;
@@ -205,7 +174,8 @@ export default function ChatPage() {
 
     const utterance = new SpeechSynthesisUtterance(textToPlay);
     utterance.lang = 'zh-CN'; // Set language to Chinese
-    utterance.rate = 0.6; // Enforce 0.6x slow speed for Chinese learning
+    utterance.rate = speechRate;
+    utterance.pitch = 1;
     
     // Apply selected voice
     if (selectedVoiceURI) {

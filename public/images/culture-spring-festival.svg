@@ -1,0 +1,13 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="675" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B91C1C"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+  <circle cx="970" cy="140" r="84" fill="#FDE68A" fill-opacity="0.35"/>
+  <circle cx="180" cy="520" r="120" fill="#FDE68A" fill-opacity="0.2"/>
+  <text x="80" y="330" fill="white" font-size="72" font-family="Inter, Arial, sans-serif" font-weight="700">Spring Festival</text>
+  <text x="80" y="390" fill="#FEF3C7" font-size="36" font-family="Inter, Arial, sans-serif">Chinese New Year Traditions</text>
+</svg>

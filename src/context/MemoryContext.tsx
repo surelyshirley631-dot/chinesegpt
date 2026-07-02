@@ -9,6 +9,10 @@ export interface MemoryItem {
   text: string;
   translation?: string;
   context?: string; // Where it came from (e.g. "PDF", "Culture")
+  pinyin?: string; // New field for pinyin
+  examples?: string[]; // New field for examples
+  exercise?: string; // New field for exercise
+  answer?: string; // New field for answer
   addedAt: number;
   nextReviewAt: number;
   stage: number; // Ebbinghaus stage (0-5)
@@ -16,11 +20,14 @@ export interface MemoryItem {
 
 interface MemoryContextType {
   items: MemoryItem[];
-  addToMemory: (text: string, context?: string, translation?: string) => Promise<void>;
+  addToMemory: (text: string, context?: string, translation?: string, pinyin?: string, examples?: string[], exercise?: string, answer?: string) => Promise<MemoryItem>;
   reviewItem: (id: string, remembered: boolean) => Promise<void>;
   getDueItems: () => MemoryItem[];
   syncLocalToCloud: () => Promise<void>;
   user: User | null;
+  lastAddedCardId: string | null;
+  setLastAddedCardId: (id: string | null) => void;
+  hasLoadedInitialData: boolean; // 新增属性
 }
 
 const MemoryContext = createContext<MemoryContextType | undefined>(undefined);
@@ -31,6 +38,8 @@ const INTERVALS = [1, 2, 4, 7, 15];
 export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<MemoryItem[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [lastAddedCardId, setLastAddedCardId] = useState<string | null>(null);
+  const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false); // 新增状态
   const supabase = createClient();
 
   // 1. Auth State Listener
@@ -58,6 +67,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
             text: item.text,
             translation: item.translation,
             context: item.context,
+            pinyin: item.pinyin, // Include pinyin
+            examples: item.examples, // Include examples
+            exercise: item.exercise, // Include exercise
+            answer: item.answer, // Include answer
             addedAt: new Date(item.created_at).getTime(),
             nextReviewAt: Number(item.next_review_at),
             stage: item.stage
@@ -68,11 +81,14 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Local Mode: Load from localStorage
-        const saved = localStorage.getItem('memory-bank');
-        if (saved) {
-          setItems(JSON.parse(saved));
+        if (typeof window !== 'undefined') { // Protect localStorage access
+          const saved = localStorage.getItem('memory-bank');
+          if (saved) {
+            setItems(JSON.parse(saved));
+          }
         }
       }
+      setHasLoadedInitialData(true); // Set to true after data is loaded (or attempted to load)
     };
 
     loadItems();
@@ -80,7 +96,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
 
   // 3. Save to local storage (Only in Local Mode)
   useEffect(() => {
-    if (!user) {
+    if (!user && typeof window !== 'undefined') { // Protect localStorage access
       localStorage.setItem('memory-bank', JSON.stringify(items));
     }
   }, [items, user]);
@@ -89,6 +105,8 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   const syncLocalToCloud = async () => {
     if (!user) return;
     
+    if (typeof window === 'undefined') return; // Protect localStorage access
+
     const localSaved = localStorage.getItem('memory-bank');
     if (!localSaved) return;
     
@@ -101,6 +119,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         text: item.text,
         translation: item.translation,
         context: item.context,
+        pinyin: item.pinyin, // Include pinyin
+        examples: item.examples, // Include examples
+        exercise: item.exercise, // Include exercise
+        answer: item.answer, // Include answer
         stage: item.stage,
         next_review_at: item.nextReviewAt
       }));
@@ -118,12 +140,24 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addToMemory = async (text: string, context: string = 'General', translation?: string) => {
+  const addToMemory = async (
+    text: string,
+    context: string = 'General',
+    translation?: string,
+    pinyin?: string,
+    examples?: string[], // New parameter
+    exercise?: string, // New parameter
+    answer?: string // New parameter
+  ) => {
     const newItemTemp: MemoryItem = {
       id: Date.now().toString(), // Temp ID for optimistic update
       text,
       translation,
       context,
+      pinyin, // Store pinyin
+      examples, // Store examples
+      exercise, // Store exercise
+      answer, // Store answer
       addedAt: Date.now(),
       nextReviewAt: Date.now() + 24 * 60 * 60 * 1000,
       stage: 0
@@ -136,6 +170,10 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         text,
         translation,
         context,
+        pinyin, // Store pinyin
+        examples, // Store examples
+        exercise, // Store exercise
+        answer, // Store answer
         stage: 0,
         next_review_at: newItemTemp.nextReviewAt
       }).select().single();
@@ -144,18 +182,27 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
         const confirmedItem: MemoryItem = {
           ...newItemTemp,
           id: data.id,
-          addedAt: new Date(data.created_at).getTime()
+          addedAt: new Date(data.created_at).getTime(),
+          pinyin: data.pinyin, // Ensure pinyin is included from data
+          examples: data.examples, // Ensure examples are included from data
+          exercise: data.exercise, // Ensure exercise is included from data
+          answer: data.answer // Ensure answer is included from data
         };
         setItems(prev => [...prev, confirmedItem]);
-        alert(`Added "${text}" to Cloud Memory!`);
+        console.log(`Added "${text}" to Cloud Memory!`);
+        setLastAddedCardId(confirmedItem.id);
+        return confirmedItem;
       } else {
         console.error('Error adding to cloud:', error);
-        alert('Failed to save to cloud.');
+        console.log('Failed to save to cloud.');
+        throw new Error('Failed to save to cloud.');
       }
     } else {
       // Local Save
       setItems(prev => [...prev, newItemTemp]);
-      alert(`Added "${text}" to Local Memory!`);
+      console.log(`Added "${text}" to Local Memory!`);
+      setLastAddedCardId(newItemTemp.id);
+      return newItemTemp;
     }
   };
 
@@ -209,7 +256,7 @@ export function MemoryProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <MemoryContext.Provider value={{ items, addToMemory, reviewItem, getDueItems, syncLocalToCloud, user }}>
+    <MemoryContext.Provider value={{ items, addToMemory, reviewItem, getDueItems, syncLocalToCloud, user, lastAddedCardId, setLastAddedCardId, hasLoadedInitialData }}>
       {children}
     </MemoryContext.Provider>
   );
